@@ -93,12 +93,29 @@ python scripts/txt2img.py --ddim_eta 0.0
 
 where * is the placeholder string used during inversion.
 
+### Merging Checkpoints
+
+LDM embedding checkpoints can be merged into a single file by running:
+
+```
+python merge_embeddings.py 
+--manager_ckpts /path/to/first/embedding.pt /path/to/second/embedding.pt [...]
+--output_path /path/to/output/embedding.pt
+```
+
+If the checkpoints contain conflicting placeholder strings, you will be prompted to select new placeholders. The merged checkpoint can later be used to prompt multiple concepts at once ("A photo of * in the style of @").
+
 ### Pretrained Models / Data
 Coming soon
 
 ## Stable Diffusion
 
 Stable Diffusion support is a work in progress and will be completed soon™.
+
+## Tips and Tricks
+- Adding "a photo of" to the prompt usually results in better target consistency.
+- Results can be seed sensititve. If you're unsatisfied with the model, try re-inverting with a new seed (by adding `--seed <#>` to the prompt).
+
 
 ## Citation
 
