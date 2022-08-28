@@ -231,12 +231,6 @@ class FrozenCLIPEmbedder(AbstractEncoder):
 
             return hidden_states
 
-            # if not return_dict:
-            #     return tuple(v for v in [hidden_states, encoder_states, all_attentions] if v is not None)
-            # return BaseModelOutput(
-            #     last_hidden_state=hidden_states, hidden_states=encoder_states, attentions=all_attentions
-            # )
-
         self.transformer.text_model.encoder.forward = encoder_forward.__get__(self.transformer.text_model.encoder)
 
 
@@ -285,15 +279,7 @@ class FrozenCLIPEmbedder(AbstractEncoder):
                 return_dict=return_dict,
             )
 
-            # last_hidden_state = encoder_outputs[0]
             last_hidden_state = self.final_layer_norm(last_hidden_state)
-
-            # text_embeds.shape = [batch_size, sequence_length, transformer.width]
-            # take features from the eot embedding (eot_token is the highest number in each sequence)
-            # pooled_output = last_hidden_state[torch.arange(last_hidden_state.shape[0]), input_ids.argmax(dim=-1)]
-
-            # if not return_dict:
-            #     return (last_hidden_state, pooled_output) + encoder_outputs[1:]
 
             return last_hidden_state
 

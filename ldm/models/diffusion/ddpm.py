@@ -66,6 +66,8 @@ class DDPM(pl.LightningModule):
                  given_betas=None,
                  original_elbo_weight=0.,
                  embedding_reg_weight=0.,
+                 unfreeze_model=False,
+                 model_lr=0.,
                  v_posterior=0.,  # weight for choosing posterior variance as sigma = (1-v) * beta_tilde + v * beta
                  l_simple_weight=1.,
                  conditioning_key=None,
@@ -101,6 +103,9 @@ class DDPM(pl.LightningModule):
         self.original_elbo_weight = original_elbo_weight
         self.l_simple_weight = l_simple_weight
         self.embedding_reg_weight = embedding_reg_weight
+
+        self.unfreeze_model = unfreeze_model
+        self.model_lr = model_lr
 
         if monitor is not None:
             self.monitor = monitor
@@ -476,21 +481,19 @@ class LatentDiffusion(DDPM):
             self.init_from_ckpt(ckpt_path, ignore_keys)
             self.restarted_from_ckpt = True
 
-        self.cond_stage_model.train = disabled_train
-        for param in self.cond_stage_model.parameters():
-            param.requires_grad = False
 
-        self.model.eval()
-        self.model.train = disabled_train
-        for param in self.model.parameters():
-            param.requires_grad = False
+        if not self.unfreeze_model:
+            self.cond_stage_model.eval()
+            self.cond_stage_model.train = disabled_train
+            for param in self.cond_stage_model.parameters():
+                param.requires_grad = False
+
+            self.model.eval()
+            self.model.train = disabled_train
+            for param in self.model.parameters():
+                param.requires_grad = False
         
         self.embedding_manager = self.instantiate_embedding_manager(personalization_config, self.cond_stage_model)
-
-        self.emb_ckpt_counter = 0
-
-        # if self.embedding_manager.is_clip:
-        #     self.cond_stage_model.update_embedding_func(self.embedding_manager)
 
         for param in self.embedding_manager.embedding_parameters():
             param.requires_grad = True
@@ -516,6 +519,7 @@ class LatentDiffusion(DDPM):
             self.register_buffer('scale_factor', 1. / z.flatten().std())
             print(f"setting self.scale_factor to {self.scale_factor}")
             print("### USING STD-RESCALING ###")
+
 
     def register_schedule(self,
                           given_betas=None, beta_schedule="linear", timesteps=1000,
@@ -1415,9 +1419,14 @@ class LatentDiffusion(DDPM):
     def configure_optimizers(self):
         lr = self.learning_rate
 
-        if self.embedding_manager is not None:
-            params = list(self.embedding_manager.embedding_parameters())
-            # params = list(self.cond_stage_model.transformer.text_model.embeddings.embedding_manager.embedding_parameters())
+        if self.embedding_manager is not None: # If using textual inversion
+            embedding_params = list(self.embedding_manager.embedding_parameters())
+
+            if self.unfreeze_model: # Are we allowing the base model to train? If so, set two different parameter groups.
+                model_params = list(self.cond_stage_model.parameters()) + list(self.model.parameters())
+                opt = torch.optim.AdamW([{"params": embedding_params, "lr": lr}, {"params": model_params}], lr=self.model_lr)
+            else: # Otherwise, train only embedding
+                opt = torch.optim.AdamW(embedding_params, lr=lr)
         else:
             params = list(self.model.parameters())
             if self.cond_stage_trainable:
@@ -1426,20 +1435,44 @@ class LatentDiffusion(DDPM):
             if self.learn_logvar:
                 print('Diffusion model optimizing logvar')
                 params.append(self.logvar)
-        opt = torch.optim.AdamW(params, lr=lr)
-        if False:
-            assert 'target' in self.scheduler_config
-            scheduler = instantiate_from_config(self.scheduler_config)
 
-            print("Setting up LambdaLR scheduler...")
-            scheduler = [
-                {
-                    'scheduler': LambdaLR(opt, lr_lambda=scheduler.schedule),
-                    'interval': 'step',
-                    'frequency': 1
-                }]
-            return [opt], scheduler
+                opt = torch.optim.AdamW(params, lr=lr)
+
         return opt
+
+    def configure_opt_embedding(self):
+
+        self.cond_stage_model.eval()
+        self.cond_stage_model.train = disabled_train
+        for param in self.cond_stage_model.parameters():
+            param.requires_grad = False
+
+        self.model.eval()
+        self.model.train = disabled_train
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.embedding_manager.embedding_parameters():
+            param.requires_grad = True
+
+        lr = self.learning_rate
+        params = list(self.embedding_manager.embedding_parameters())
+        return torch.optim.AdamW(params, lr=lr)
+
+    def configure_opt_model(self):
+
+        for param in self.cond_stage_model.parameters():
+            param.requires_grad = True
+
+        for param in self.model.parameters():
+            param.requires_grad = True
+
+        for param in self.embedding_manager.embedding_parameters():
+            param.requires_grad = True
+
+        model_params = list(self.cond_stage_model.parameters()) + list(self.model.parameters())
+        embedding_params = list(self.embedding_manager.embedding_parameters())
+        return torch.optim.AdamW([{"params": embedding_params, "lr": self.learning_rate}, {"params": model_params}], lr=self.model_lr)
 
     @torch.no_grad()
     def to_rgb(self, x):
@@ -1452,15 +1485,14 @@ class LatentDiffusion(DDPM):
 
     @rank_zero_only
     def on_save_checkpoint(self, checkpoint):
-        checkpoint.clear()
+
+        if not self.unfreeze_model: # If we are not tuning the model itself, zero-out the checkpoint content to preserve memory.
+            checkpoint.clear()
         
         if os.path.isdir(self.trainer.checkpoint_callback.dirpath):
             self.embedding_manager.save(os.path.join(self.trainer.checkpoint_callback.dirpath, "embeddings.pt"))
 
-            if (self.global_step - self.emb_ckpt_counter) > 500:
-                self.embedding_manager.save(os.path.join(self.trainer.checkpoint_callback.dirpath, f"embeddings_gs-{self.global_step}.pt"))
-
-                self.emb_ckpt_counter += 500
+            self.embedding_manager.save(os.path.join(self.trainer.checkpoint_callback.dirpath, f"embeddings_gs-{self.global_step}.pt"))
 
 
 class DiffusionWrapper(pl.LightningModule):

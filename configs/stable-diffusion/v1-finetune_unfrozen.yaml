@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 5.0e-03
+  base_learning_rate: 5.0e-05
   target: ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.00085
@@ -17,8 +17,8 @@ model:
     scale_factor: 0.18215
     use_ema: False
     embedding_reg_weight: 0.0
-    unfreeze_model: False
-    model_lr: 0.0
+    unfreeze_model: True
+    model_lr: 1.0e-7
 
     personalization_config:
       target: ldm.modules.embedding_manager.EmbeddingManager
@@ -75,7 +75,7 @@ model:
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 2
+    batch_size: 1
     num_workers: 2
     wrap: false
     train:
@@ -107,4 +107,4 @@ lightning:
 
   trainer:
     benchmark: True
-    max_steps: 6100
+    max_steps: 4200

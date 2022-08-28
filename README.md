@@ -22,12 +22,13 @@
 This repo contains the official code, data and sample inversions for our Textual Inversion paper. 
 
 ## Updates
-**21/08/2022 (C)** Code released!
+**29/08/2022** Merge embeddings now supports SD embeddings. Added SD pivotal tuning code (WIP), fixed training duration, checkpoint save iterations.
+**21/08/2022** Code released!
 
 ## TODO:
 - [x] Release code!
 - [x] Optimize gradient storing / checkpointing. Memory requirements, training times reduced by ~55%
-- [ ] Release data sets
+- [x] Release data sets
 - [ ] Release pre-trained embeddings
 - [ ] Add Stable Diffusion support
 
@@ -67,13 +68,15 @@ python main.py --base configs/latent-diffusion/txt2img-1p4B-finetune.yaml
 
 where the initialization word should be a single-token rough description of the object (e.g., 'toy', 'painting', 'sculpture'). If the input is comprised of more than a single token, you will be prompted to replace it.
 
+Please note that `init_word` is *not* the placeholder string that will later represent the concept. It is only used as a beggining point for the optimization scheme.
+
 In the paper, we use 5k training iterations. However, some concepts (particularly styles) can converge much faster.
 
 To run on multiple GPUs, provide a comma-delimited list of GPU indices to the --gpus argument (e.g., ``--gpus 0,3,7,8``)
 
 Embeddings and output images will be saved in the log directory.
 
-See `configs/latent-diffusion/txt2img-1p4B-finetune.yaml` for more options, such as changing the placeholder string which denotes the concept (defaults to "*")
+See `configs/latent-diffusion/txt2img-1p4B-finetune.yaml` for more options, such as: changing the placeholder string which denotes the concept (defaults to "*"), changing the maximal number of training iterations, changing how often checkpoints are saved and more.
 
 **Important** All training set images should be upright. If you are using phone captured images, check the inputs_gs*.jpg files in the output image directory and make sure they are oriented correctly. Many phones capture images with a 90 degree rotation and denote this in the image metadata. Windows parses these correctly, but PIL does not. Hence you will need to correct them manually (e.g. by pasting them into paint and re-saving) or wait until we add metadata parsing.
 
@@ -103,10 +106,15 @@ python merge_embeddings.py
 --output_path /path/to/output/embedding.pt
 ```
 
+For SD embeddings, simply add the flag: `-sd` or `--stable_diffusion`.
+
 If the checkpoints contain conflicting placeholder strings, you will be prompted to select new placeholders. The merged checkpoint can later be used to prompt multiple concepts at once ("A photo of * in the style of @").
 
 ### Pretrained Models / Data
-Coming soon
+
+Datasets which appear in the paper are being uploaded [here](https://drive.google.com/drive/folders/1d2UXkX0GWM-4qUwThjNhFIPP7S6WUbQJ). Some sets are unavailable due to image ownership. We will upload more as we recieve permissions to do so.
+
+Pretained models coming soon.
 
 ## Stable Diffusion
 
