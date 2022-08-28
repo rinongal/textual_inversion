@@ -103,6 +103,9 @@ data:
         repeats: 10
 
 lightning:
+  modelcheckpoint:
+    params:
+      every_n_train_steps: 500
   callbacks:
     image_logger:
       target: main.ImageLogger
