@@ -232,8 +232,13 @@ class DataModuleFromConfig(pl.LightningDataModule):
         self.wrap = wrap
 
     def prepare_data(self):
-        for data_cfg in self.dataset_configs.values():
-            instantiate_from_config(data_cfg)
+        # this call should only happen once, so we can quickly report
+        # some stats about the dataset that may be distributed as we
+        # instantiate (and presumably cache) them
+        print("#### Data #####")
+        for k in self.dataset_configs:
+            dataset = instantiate_from_config(self.dataset_configs[k])
+            print(f"{k}, {dataset.__class__.__name__}, {len(dataset)}")
 
     def setup(self, stage=None):
         self.datasets = dict(
@@ -746,16 +751,6 @@ if __name__ == "__main__":
         config.data.params.train.params.data_root = opt.data_root
         config.data.params.validation.params.data_root = opt.data_root
         data = instantiate_from_config(config.data)
-
-        data = instantiate_from_config(config.data)
-        # NOTE according to https://pytorch-lightning.readthedocs.io/en/latest/datamodules.html
-        # calling these ourselves should not be necessary but it is.
-        # lightning still takes care of proper multiprocessing though
-        data.prepare_data()
-        data.setup()
-        print("#### Data #####")
-        for k in data.datasets:
-            print(f"{k}, {data.datasets[k].__class__.__name__}, {len(data.datasets[k])}")
 
         # configure learning rate
         bs, base_lr = config.data.params.batch_size, config.model.base_learning_rate
