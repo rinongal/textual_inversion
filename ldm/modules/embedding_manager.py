@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+from ldm.util import default
+from ldm.modules.embedding_shuffler import get_shuffler
 from ldm.data.personalized import per_img_token_list
 from transformers import CLIPTokenizer
 from functools import partial
@@ -35,6 +37,7 @@ class EmbeddingManager(nn.Module):
             embedder,
             placeholder_strings=None,
             initializer_words=None,
+            shuffle_mode=None,
             per_image_tokens=False,
             num_vectors_per_token=1,
             progressive_words=False,
@@ -48,6 +51,7 @@ class EmbeddingManager(nn.Module):
 
         self.initial_embeddings = nn.ParameterDict() # These should not be optimized
 
+        self.shuffle_embeddings = get_shuffler(default(shuffle_mode, "off"))
         self.progressive_words = progressive_words
         self.progressive_counter = 0
 
@@ -107,6 +111,7 @@ class EmbeddingManager(nn.Module):
                     max_step_tokens = self.max_vectors_per_token
 
                 num_vectors_for_token = min(placeholder_embedding.shape[0], max_step_tokens)
+                shuffle_view = self.shuffle_embeddings(placeholder_embedding, num_vectors_for_token)
 
                 placeholder_rows, placeholder_cols = torch.where(tokenized_text == placeholder_token.to(device))
 
@@ -121,7 +126,7 @@ class EmbeddingManager(nn.Module):
                     col = sorted_cols[idx]
 
                     new_token_row = torch.cat([tokenized_text[row][:col], placeholder_token.repeat(num_vectors_for_token).to(device), tokenized_text[row][col + 1:]], axis=0)[:n]
-                    new_embed_row = torch.cat([embedded_text[row][:col], placeholder_embedding[:num_vectors_for_token], embedded_text[row][col + 1:]], axis=0)[:n]
+                    new_embed_row = torch.cat([embedded_text[row][:col], shuffle_view, embedded_text[row][col + 1:]], axis=0)[:n]
 
                     embedded_text[row]  = new_embed_row
                     tokenized_text[row] = new_token_row
