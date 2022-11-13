@@ -148,7 +148,7 @@ class EmbeddingManager(nn.Module):
         return self.string_to_param_dict.parameters()
 
     def embedding_to_coarse_loss(self):
-        loss = torch.tensor(0.)
+        loss = torch.zeros(1, requires_grad=True)
         num_embeddings = len(self.initial_embeddings)
 
         for key in self.initial_embeddings:
