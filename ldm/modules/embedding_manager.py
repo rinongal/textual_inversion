@@ -111,7 +111,6 @@ class EmbeddingManager(nn.Module):
                     max_step_tokens = self.max_vectors_per_token
 
                 num_vectors_for_token = min(placeholder_embedding.shape[0], max_step_tokens)
-                shuffle_view = self.shuffle_embeddings(placeholder_embedding, num_vectors_for_token)
 
                 placeholder_rows, placeholder_cols = torch.where(tokenized_text == placeholder_token.to(device))
 
@@ -125,6 +124,7 @@ class EmbeddingManager(nn.Module):
                     row = sorted_rows[idx]
                     col = sorted_cols[idx]
 
+                    shuffle_view = self.shuffle_embeddings(placeholder_embedding, num_vectors_for_token)
                     new_token_row = torch.cat([tokenized_text[row][:col], placeholder_token.repeat(num_vectors_for_token).to(device), tokenized_text[row][col + 1:]], axis=0)[:n]
                     new_embed_row = torch.cat([embedded_text[row][:col], shuffle_view, embedded_text[row][col + 1:]], axis=0)[:n]
 

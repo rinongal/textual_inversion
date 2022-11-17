@@ -23,6 +23,8 @@ def idx_of(value: int, device: torch.device):
 def shuffle_off(placeholder_embedding: Tensor, num_vectors: Optional[int]=None):
     """Performs no shuffling, but will still trim to the number of vectors."""
     num_vectors = default(num_vectors, placeholder_embedding.shape[0])
+    if num_vectors == placeholder_embedding.shape[0]:
+        return placeholder_embedding
     return placeholder_embedding[:num_vectors]
 
 def shuffle_all(placeholder_embedding: Tensor, num_vectors: Optional[int]=None):
