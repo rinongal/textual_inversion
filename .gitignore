@@ -1,0 +1,11 @@
+# Do not track log outputs if they appear here.
+logs/**
+
+# Let's not track GBs of binary data.
+*.ckpt
+
+# Do not track Python compilation artifacts.
+**/__pycache__/**
+
+# Do not track local installation artifacts.
+latent_diffusion.egg-info/**
