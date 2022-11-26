@@ -12,7 +12,7 @@ from pytorch_lightning import seed_everything
 from torch import autocast
 from contextlib import contextmanager, nullcontext
 
-from ldm.util import instantiate_from_config
+from ldm.util import instantiate_from_config, split_weighted_subprompts
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.plms import PLMSSampler
 
@@ -241,7 +241,15 @@ def main():
                             uc = model.get_learned_conditioning(batch_size * [""])
                         if isinstance(prompts, tuple):
                             prompts = list(prompts)
-                        c = model.get_learned_conditioning(prompts)
+                        subprompts, weights = split_weighted_subprompts(prompts[0])
+                        if len(subprompts) > 1:
+                            c = torch.zeros_like(uc)
+                            totalWeight = sum(weights)
+                            for i in range(len(subprompts)):
+                                weight = weights[i] / totalWeight
+                                c = torch.add(c, model.get_learned_conditioning(subprompts[i]), alpha=weight)
+                        else:
+                            c = model.get_learned_conditioning(prompts)
                         shape = [opt.C, opt.H // opt.f, opt.W // opt.f]
                         samples_ddim, _ = sampler.sample(S=opt.ddim_steps,
                                                          conditioning=c,
