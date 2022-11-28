@@ -62,6 +62,12 @@ if __name__ == "__main__":
         help="Path to directory with images used to train the embedding vectors"
     )
 
+    parser.add_argument(
+        "--out_dir",
+        type=str,
+        help="Path to output directory"
+    )
+    
     opt = parser.parse_args()
 
 
