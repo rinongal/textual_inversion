@@ -120,6 +120,9 @@ Pretained models coming soon.
 
 Stable Diffusion support is a work in progress and will be completed soon™.
 
+## Very Detailed Tutorial Video by Using Automatic1111 Web UI Implementation
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/dNOpWt-epdQ/0.jpg)](http://www.youtube.com/watch?v=dNOpWt-epdQ "How To Do Stable Diffusion Textual Inversion (TI) / Text Embeddings By Automatic1111 Web UI Tutorial")
+
 ## Tips and Tricks
 - Adding "a photo of" to the prompt usually results in better target consistency.
 - Results can be seed sensititve. If you're unsatisfied with the model, try re-inverting with a new seed (by adding `--seed <#>` to the prompt).
