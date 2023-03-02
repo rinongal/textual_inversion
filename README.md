@@ -68,7 +68,7 @@ python main.py --base configs/latent-diffusion/txt2img-1p4B-finetune.yaml
 
 where the initialization word should be a single-token rough description of the object (e.g., 'toy', 'painting', 'sculpture'). If the input is comprised of more than a single token, you will be prompted to replace it.
 
-Please note that `init_word` is *not* the placeholder string that will later represent the concept. It is only used as a beggining point for the optimization scheme.
+Please note that `init_word` is *not* the placeholder string that will later represent the concept. It is only used as a beginning point for the optimization scheme.
 
 In the paper, we use 5k training iterations. However, some concepts (particularly styles) can converge much faster.
 
@@ -112,7 +112,7 @@ If the checkpoints contain conflicting placeholder strings, you will be prompted
 
 ### Pretrained Models / Data
 
-Datasets which appear in the paper are being uploaded [here](https://drive.google.com/drive/folders/1d2UXkX0GWM-4qUwThjNhFIPP7S6WUbQJ). Some sets are unavailable due to image ownership. We will upload more as we recieve permissions to do so.
+Datasets which appear in the paper are being uploaded [here](https://drive.google.com/drive/folders/1d2UXkX0GWM-4qUwThjNhFIPP7S6WUbQJ). Some sets are unavailable due to image ownership. We will upload more as we receive permissions to do so.
 
 Pretained models coming soon.
 
